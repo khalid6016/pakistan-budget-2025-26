@@ -1,0 +1,564 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pakistan Budget 2025-26</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background-color: #f4f4f4;
+            --text-color: #000000;
+            --section-bg: #ffffff;
+            --header-bg: #004aad;
+            --header-text: #ffffff;
+            --table-header-bg: #004aad;
+            --table-header-text: #ffffff;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dark-theme {
+            --background-color: #1a1a1a;
+            --text-color: #ffffff;
+            --section-bg: #2c2c2c;
+            --header-bg: #003087;
+            --header-text: #ffffff;
+            --table-header-bg: #003087;
+            --table-header-text: #ffffff;
+            --shadow: 0 2px 4px rgba(255,255,255,0.1);
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        [lang="ur"] {
+            font-family: 'Noto Nastaliq Urdu', sans-serif;
+            direction: rtl;
+        }
+
+        header {
+            text-align: center;
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 10px;
+        }
+
+        h1, h2, h3 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #summary, #search {
+            background: var(--section-bg);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+
+        #searchResults {
+            margin-top: 10px;
+        }
+
+        details {
+            background: var(--section-bg);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        summary {
+            cursor: pointer;
+            font-size: 18px;
+            padding: 10px;
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        [lang="ur"] th, [lang="ur"] td {
+            text-align: right;
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--table-header-text);
+        }
+
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        #languageSelect, #themeToggle {
+            padding: 8px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="appTitle">Pakistan Budget 2025-26</h1>
+    </header>
+    <div id="controls">
+        <select id="languageSelect" onchange="changeLanguage()">
+            <option value="en">English</option>
+            <option value="ur">اردو</option>
+        </select>
+        <button id="themeToggle" onclick="toggleTheme()">Switch to Dark Theme</button>
+    </div>
+    <main>
+        <section id="search">
+            <h2 id="searchTitle">Search Sectors</h2>
+            <input type="text" id="searchInput" placeholder="Enter sector name (e.g., Defense, Health)">
+            <div id="searchResults"></div>
+        </section>
+        <section id="summary">
+            <h2 id="summaryTitle">Budget Summary</h2>
+            <p id="totalBudget">Total Budget: 17.57 Trillion PKR</p>
+            <canvas id="budgetChart"></canvas>
+        </section>
+        <details id="comparisonDetails">
+            <summary id="comparisonSummary">Show Budget Comparison</summary>
+            <div id="comparison">
+                <h2 id="comparisonTitle">Budget 2024-25 vs 2025-26</h2>
+                <table>
+                    <tr>
+                        <th id="tableAspect">Aspect</th>
+                        <th id="table2024">2024-25</th>
+                        <th id="table2025">2025-26</th>
+                    </tr>
+                    <tr>
+                        <td id="tableTotalBudget">Total Budget</td>
+                        <td>18.9 Trillion PKR</td>
+                        <td>17.57 Trillion PKR</td>
+                    </tr>
+                    <tr>
+                        <td id="tableGdpGrowth">GDP Growth Target</td>
+                        <td>3.6%</td>
+                        <td>4.2%</td>
+                    </tr>
+                    <tr>
+                        <td id="tableDeficit">Deficit</td>
+                        <td>6.9%</td>
+                        <td>3.9%</td>
+                    </tr>
+                    <tr>
+                        <td id="tableTaxTarget">Tax Target</td>
+                        <td>13 Trillion PKR</td>
+                        <td>14.13 Trillion PKR</td>
+                    </tr>
+                    <tr>
+                        <td id="tableDefense">Defense Budget</td>
+                        <td>2.12 Trillion PKR</td>
+                        <td>2.55 Trillion PKR</td>
+                    </tr>
+                    <tr>
+                        <td id="tableSalaries">Government Salaries</td>
+                        <td>20-25% Increase</td>
+                        <td>10% Increase</td>
+                    </tr>
+                    <tr>
+                        <td id="tableHealth">Health</td>
+                        <td>0.23 Trillion PKR</td>
+                        <td>0.5 Trillion PKR</td>
+                    </tr>
+                    <tr>
+                        <td id="tableEducation">Education</td>
+                        <td>0.21 Trillion PKR</td>
+                        <td>0.7 Trillion PKR</td>
+                    </tr>
+                    <tr>
+                        <td id="tableDevelopment">Development Projects</td>
+                        <td>1.4 Trillion PKR</td>
+                        <td>1.0 Trillion PKR</td>
+                    </tr>
+                </table>
+                <h3 id="categoryComparisonTitle">Category-wise Comparison</h3>
+                <canvas id="comparisonChart"></canvas>
+                <div id="categoryAnalysis">
+                    <p id="defenseAnalysis"><strong>Defense:</strong> 2024-25 is more people-friendly as it allocates less (2.12 Trillion PKR) to defense compared to 2025-26 (2.55 Trillion PKR), leaving more resources for social services.</p>
+                    <p id="healthAnalysis"><strong>Health:</strong> 2025-26 is more people-friendly with higher spending (0.5 Trillion PKR) compared to 2024-25 (0.23 Trillion PKR), improving public healthcare access.</p>
+                    <p id="educationAnalysis"><strong>Education:</strong> 2025-26 is more people-friendly with significantly higher spending (0.7 Trillion PKR) compared to 2024-25 (0.21 Trillion PKR), benefiting students and future workforce.</p>
+                    <p id="developmentAnalysis"><strong>Development Projects:</strong> 2024-25 is more people-friendly with higher allocation (1.4 Trillion PKR) compared to 2025-26 (1.0 Trillion PKR), promoting jobs and infrastructure.</p>
+                    <p id="overallConclusion"><strong>Overall:</strong> 2025-26 is more people-friendly for long-term benefits due to higher health and education spending, while 2024-25 is better for short-term benefits with lower defense and higher development spending.</p>
+                </div>
+            </div>
+        </details>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Budget data
+        const budgetData = [
+            { 
+                sector: { en: "Defense", ur: "دفاع" }, 
+                amount: 2.55, 
+                unit: { en: "Trillion PKR", ur: "ٹریلین روپے" },
+                amount2024: 2.12
+            },
+            { 
+                sector: { en: "Development Projects", ur: "ترقیاتی منصوبے" }, 
+                amount: 1.0, 
+                unit: { en: "Trillion PKR", ur: "ٹریلین روپے" },
+                amount2024: 1.4
+            },
+            { 
+                sector: { en: "Health", ur: "صحت" }, 
+                amount: 0.5, 
+                unit: { en: "Trillion PKR", ur: "ٹریلین روپے" },
+                amount2024: 0.23
+            },
+            { 
+                sector: { en: "Education", ur: "تعلیم" }, 
+                amount: 0.7, 
+                unit: { en: "Trillion PKR", ur: "ٹریلین روپے" },
+                amount2024: 0.21
+            },
+            { 
+                sector: { en: "Others", ur: "دیگر" }, 
+                amount: 13.32, 
+                unit: { en: "Trillion PKR", ur: "ٹریلین روپے" },
+                amount2024: 15.14
+            }
+        ];
+
+        // Language translations
+        const translations = {
+            en: {
+                appTitle: "Pakistan Budget 2025-26",
+                searchTitle: "Search Sectors",
+                searchPlaceholder: "Enter sector name (e.g., Defense, Health)",
+                summaryTitle: "Budget Summary",
+                totalBudget: "Total Budget: 17.57 Trillion PKR",
+                comparisonSummary: "Show Budget Comparison",
+                comparisonTitle: "Budget 2024-25 vs 2025-26",
+                tableAspect: "Aspect",
+                table2024: "2024-25",
+                table2025: "2025-26",
+                tableTotalBudget: "Total Budget",
+                tableGdpGrowth: "GDP Growth Target",
+                tableDeficit: "Deficit",
+                tableTaxTarget: "Tax Target",
+                tableDefense: "Defense Budget",
+                tableSalaries: "Government Salaries",
+                tableHealth: "Health",
+                tableEducation: "Education",
+                tableDevelopment: "Development Projects",
+                comparisonConclusion: "<strong>Conclusion:</strong> The 2025-26 budget is more people-friendly in terms of long-term benefits due to higher spending on health and education, lower deficit, and a higher GDP growth target. However, the 2024-25 budget offers short-term relief with higher salary increases for government employees and a lower tax target.",
+                chartLabel: "Budget Allocation (Trillion PKR)",
+                chartTitle: "Pakistan Budget 2025-26: Expenditure Allocation",
+                categoryComparisonTitle: "Category-wise Comparison",
+                defenseAnalysis: "<strong>Defense:</strong> 2024-25 is more people-friendly as it allocates less (2.12 Trillion PKR) to defense compared to 2025-26 (2.55 Trillion PKR), leaving more resources for social services.",
+                healthAnalysis: "<strong>Health:</strong> 2025-26 is more people-friendly with higher spending (0.5 Trillion PKR) compared to 2024-25 (0.23 Trillion PKR), improving public healthcare access.",
+                educationAnalysis: "<strong>Education:</strong> 2025-26 is more people-friendly with significantly higher spending (0.7 Trillion PKR) compared to 2024-25 (0.21 Trillion PKR), benefiting students and future workforce.",
+                developmentAnalysis: "<strong>Development Projects:</strong> 2024-25 is more people-friendly with higher allocation (1.4 Trillion PKR) compared to 2025-26 (1.0 Trillion PKR), promoting jobs and infrastructure.",
+                overallConclusion: "<strong>Overall:</strong> 2025-26 is more people-friendly for long-term benefits due to higher health and education spending, while 2024-25 is better for short-term benefits with lower defense and higher development spending."
+            },
+            ur: {
+                appTitle: "پاکستان بجٹ 2025-26",
+                searchTitle: "شعبہ جات تلاش کریں",
+                searchPlaceholder: "شعبہ کا نام درج کریں (مثلاً دفاع، صحت)",
+                summaryTitle: "بجٹ کی سمری",
+                totalBudget: "کل بجٹ: 17.57 ٹریلین روپے",
+                comparisonSummary: "بجٹ موازنہ دکھائیں",
+                comparisonTitle: "بجٹ 2024-25 بمقابلہ 2025-26",
+                tableAspect: "پہلو",
+                table2024: "2024-25",
+                table2025: "2025-26",
+                tableTotalBudget: "کل بجٹ",
+                tableGdpGrowth: "معاشی ترقی کا ہدف",
+                tableDeficit: "خسارہ",
+                tableTaxTarget: "ٹیکس ہدف",
+                tableDefense: "دفاعی بجٹ",
+                tableSalaries: "سرکاری ملازمین کی تنخواہیں",
+                tableHealth: "صحت",
+                tableEducation: "تعلیم",
+                tableDevelopment: "ترقیاتی منصوبے",
+                comparisonConclusion: "<strong>نتیجہ:</strong> 2025-26 کا بجٹ صحت اور تعلیم پر زیادہ اخراجات، کم خسارے، اور زیادہ معاشی ترقی کے ہدف کی وجہ سے طویل مدتی فوائد کے لحاظ سے زیادہ عوام دوست ہے۔ تاہم، 2024-25 کا بجٹ سرکاری ملازمین کی تنخواہوں میں زیادہ اضافے اور کم ٹیکس ہدف کی وجہ سے قلیل مدتی ریلیف دیتا ہے۔",
+                chartLabel: "بجٹ کی تقسیم (ٹریلین روپے)",
+                chartTitle: "پاکستان بجٹ 2025-26: اخراجات کی تقسیم",
+                categoryComparisonTitle: "کیٹگری کے لحاظ سے موازنہ",
+                defenseAnalysis: "<strong>دفاع:</strong> 2024-25 زیادہ عوام دوست ہے کیونکہ اس میں دفاع کے لیے کم (2.12 ٹریلین روپے) مختص کیا گیا ہے جبکہ 2025-26 میں (2.55 ٹریلین روپے)، جس سے سماجی خدمات کے لیے زیادہ وسائل بچتے ہیں۔",
+                healthAnalysis: "<strong>صحت:</strong> 2025-26 زیادہ عوام دوست ہے کیونکہ اس میں صحت پر زیادہ اخراجات (0.5 ٹریلین روپے) ہیں جبکہ 2024-25 میں (0.23 ٹریلین روپے)، جو عوامی صحت کی سہولیات کو بہتر بناتا ہے۔",
+                educationAnalysis: "<strong>تعلیم:</strong> 2025-26 زیادہ عوام دوست ہے کیونکہ اس میں تعلیم پر نمایاں طور پر زیادہ اخراجات (0.7 ٹریلین روپے) ہیں جبکہ 2024-25 میں (0.21 ٹریلین روپے)، جو طلباء اور مستقبل کی افرادی قوت کے لیے فائدہ مند ہے۔",
+                developmentAnalysis: "<strong>ترقیاتی منصوبے:</strong> 2024-25 زیادہ عوام دوست ہے کیونکہ اس میں ترقیاتی منصوبوں کے لیے زیادہ (1.4 ٹریلین روپے) مختص کیا گیا ہے جبکہ 2025-26 میں (1.0 ٹریلین روپے)، جو روزگار اور انفراسٹرکچر کو فروغ دیتا ہے۔",
+                overallConclusion: "<strong>مجموعی طور پر:</strong> 2025-26 صحت اور تعلیم پر زیادہ اخراجات کی وجہ سے طویل مدتی فوائد کے لیے زیادہ عوام دوست ہے، جبکہ 2024-25 کم دفاعی اور زیادہ ترقیاتی اخراجات کی وجہ سے قلیل مدتی فوائد کے لیے بہتر ہے۔"
+            }
+        };
+
+        let currentLanguage = 'en';
+        let budgetChartInstance = null;
+        let comparisonChartInstance = null;
+
+        // Initialize Budget Chart (Pie Chart for 2025-26)
+        function renderBudgetChart() {
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            if (budgetChartInstance) {
+                budgetChartInstance.destroy();
+            }
+            budgetChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: budgetData.map(item => item.sector[currentLanguage]),
+                    datasets: [{
+                        label: translations[currentLanguage].chartLabel,
+                        data: budgetData.map(item => item.amount),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+                        borderColor: ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { 
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: currentLanguage === 'ur' ? "'Noto Nastaliq Urdu', sans-serif" : 'Arial, sans-serif',
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: translations[currentLanguage].chartTitle,
+                            font: {
+                                family: currentLanguage === 'ur' ? "'Noto Nastaliq Urdu', sans-serif" : 'Arial, sans-serif',
+                                size: 18
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize Comparison Chart (Bar Chart for 2024-25 vs 2025-26)
+        function renderComparisonChart() {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            if (comparisonChartInstance) {
+                comparisonChartInstance.destroy();
+            }
+            comparisonChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: budgetData.map(item => item.sector[currentLanguage]).slice(0, 4), // Exclude "Others"
+                    datasets: [
+                        {
+                            label: translations[currentLanguage].table2024,
+                            data: budgetData.map(item => item.amount2024).slice(0, 4),
+                            backgroundColor: '#36A2EB',
+                            borderColor: '#FFFFFF',
+                            borderWidth: 1
+                        },
+                        {
+                            label: translations[currentLanguage].table2025,
+                            data: budgetData.map(item => item.amount).slice(0, 4),
+                            backgroundColor: '#FF6384',
+                            borderColor: '#FFFFFF',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: translations[currentLanguage].chartLabel,
+                                font: {
+                                    family: currentLanguage === 'ur' ? "'Noto Nastaliq Urdu', sans-serif" : 'Arial, sans-serif',
+                                    size: 14
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: translations[currentLanguage].tableAspect,
+                                font: {
+                                    family: currentLanguage === 'ur' ? "'Noto Nastaliq Urdu', sans-serif" : 'Arial, sans-serif',
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { 
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: currentLanguage === 'ur' ? "'Noto Nastaliq Urdu', sans-serif" : 'Arial, sans-serif',
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: translations[currentLanguage].categoryComparisonTitle,
+                            font: {
+                                family: currentLanguage === 'ur' ? "'Noto Nastaliq Urdu', sans-serif" : 'Arial, sans-serif',
+                                size: 18
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Change Language
+        function changeLanguage() {
+            currentLanguage = document.getElementById('languageSelect').value;
+            document.documentElement.lang = currentLanguage;
+            document.documentElement.style.direction = currentLanguage === 'ur' ? 'rtl' : 'ltr';
+            
+            // Update text content
+            document.getElementById('appTitle').textContent = translations[currentLanguage].appTitle;
+            document.getElementById('searchTitle').textContent = translations[currentLanguage].searchTitle;
+            document.getElementById('searchInput').placeholder = translations[currentLanguage].searchPlaceholder;
+            document.getElementById('summaryTitle').textContent = translations[currentLanguage].summaryTitle;
+            document.getElementById('totalBudget').textContent = translations[currentLanguage].totalBudget;
+            document.getElementById('comparisonSummary').textContent = translations[currentLanguage].comparisonSummary;
+            document.getElementById('comparisonTitle').textContent = translations[currentLanguage].comparisonTitle;
+            document.getElementById('tableAspect').textContent = translations[currentLanguage].tableAspect;
+            document.getElementById('table2024').textContent = translations[currentLanguage].table2024;
+            document.getElementById('table2025').textContent = translations[currentLanguage].table2025;
+            document.getElementById('tableTotalBudget').textContent = translations[currentLanguage].tableTotalBudget;
+            document.getElementById('tableGdpGrowth').textContent = translations[currentLanguage].tableGdpGrowth;
+            document.getElementById('tableDeficit').textContent = translations[currentLanguage].tableDeficit;
+            document.getElementById('tableTaxTarget').textContent = translations[currentLanguage].tableTaxTarget;
+            document.getElementById('tableDefense').textContent = translations[currentLanguage].tableDefense;
+            document.getElementById('tableSalaries').textContent = translations[currentLanguage].tableSalaries;
+            document.getElementById('tableHealth').textContent = translations[currentLanguage].tableHealth;
+            document.getElementById('tableEducation').textContent = translations[currentLanguage].tableEducation;
+            document.getElementById('tableDevelopment').textContent = translations[currentLanguage].tableDevelopment;
+            document.getElementById('categoryComparisonTitle').textContent = translations[currentLanguage].categoryComparisonTitle;
+            document.getElementById('defenseAnalysis').innerHTML = translations[currentLanguage].defenseAnalysis;
+            document.getElementById('healthAnalysis').innerHTML = translations[currentLanguage].healthAnalysis;
+            document.getElementById('educationAnalysis').innerHTML = translations[currentLanguage].educationAnalysis;
+            document.getElementById('developmentAnalysis').innerHTML = translations[currentLanguage].developmentAnalysis;
+            document.getElementById('overallConclusion').innerHTML = translations[currentLanguage].overallConclusion;
+
+            // Update theme button text
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark-theme') ? 
+                (currentLanguage === 'ur' ? 'لائٹ تھیم پر جائیں' : 'Switch to Light Theme') : 
+                (currentLanguage === 'ur' ? 'ڈارک تھیم پر جائیں' : 'Switch to Dark Theme');
+
+            // Re-render charts
+            renderBudgetChart();
+            if (document.getElementById('comparisonDetails').open) {
+                renderComparisonChart();
+            }
+
+            // Trigger search to update results
+            document.getElementById('searchInput').dispatchEvent(new Event('input'));
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark-theme') ? 
+                (currentLanguage === 'ur' ? 'لائٹ تھیم پر جائیں' : 'Switch to Light Theme') : 
+                (currentLanguage === 'ur' ? 'ڈارک تھیم پر جائیں' : 'Switch to Dark Theme');
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            const results = budgetData.filter(item => item.sector[currentLanguage].toLowerCase().includes(query));
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '';
+            if (query) {
+                results.forEach(item => {
+                    resultsDiv.innerHTML += `<p>${item.sector[currentLanguage]}: ${item.amount} ${item.unit[currentLanguage]}</p>`;
+                });
+            }
+        });
+
+        // Render comparison chart when details is opened
+        document.getElementById('comparisonDetails').addEventListener('toggle', function() {
+            if (this.open) {
+                renderComparisonChart();
+            } else if (comparisonChartInstance) {
+                comparisonChartInstance.destroy();
+            }
+        });
+
+        // Initialize
+        renderBudgetChart();
+        document.getElementById('themeToggle').textContent = currentLanguage === 'ur' ? 'ڈارک تھیم پر جائیں' : 'Switch to Dark Theme';
+    </script>
+</body>
+</html>
